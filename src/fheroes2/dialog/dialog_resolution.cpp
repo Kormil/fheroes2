@@ -21,6 +21,7 @@
 #include "dialog_resolution.h"
 #include "agg_image.h"
 #include "cursor.h"
+#include "dialog.h"
 #include "embedded_image.h"
 #include "game_hotkeys.h"
 #include "gamedefs.h"
@@ -222,7 +223,13 @@ namespace Dialog
 
         if ( selectedResolution.width > 0 && selectedResolution.height > 0
              && ( selectedResolution.width != currentResolution.width || selectedResolution.height != currentResolution.height ) ) {
-            display.resize( selectedResolution.width, selectedResolution.height );
+
+            fheroes2::Text header( _( "Okay" ), fheroes2::FontType::normalYellow() );
+            fheroes2::Text body( _( "Resolution saved and will be change after restart." ), fheroes2::FontType::normalWhite() );
+            fheroes2::showMessage( header, body, Dialog::OK );
+
+            display.saveWindowSize({0, 0, selectedResolution.width, selectedResolution.height});
+            //display.resize( selectedResolution.width, selectedResolution.height );
 
 #if !defined( MACOS_APP_BUNDLE )
             const fheroes2::Image & appIcon = CreateImageFromZlib( 32, 32, iconImage, sizeof( iconImage ), true );

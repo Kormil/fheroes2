@@ -22,14 +22,18 @@
 #include "image_palette.h"
 #include "logging.h"
 #include "tools.h"
+#include "EGL/egl.h"
 
 #include <SDL_version.h>
 #include <SDL_video.h>
+#include <SDL_syswm.h>
 #if SDL_VERSION_ATLEAST( 2, 0, 0 )
 #include <SDL_events.h>
 #include <SDL_hints.h>
 #include <SDL_mouse.h>
 #include <SDL_render.h>
+#include <SDL2_rotozoom.h>
+#include <wayland-client-protocol.h>
 #else
 #include <SDL_active.h>
 #endif
@@ -79,7 +83,7 @@ namespace
         return value.width < fheroes2::Display::DEFAULT_WIDTH || value.height < fheroes2::Display::DEFAULT_HEIGHT;
     }
 
-    std::vector<fheroes2::Size> FilterResolutions( const std::set<fheroes2::Size> & resolutionSet )
+    std::vector<fheroes2::Size> FilterResolutions( const std::set<fheroes2::Size> & resolutionSet)
     {
         static_assert( fheroes2::Display::DEFAULT_WIDTH == 640 && fheroes2::Display::DEFAULT_HEIGHT == 480, "Default resolution must be 640 x 480" );
 
@@ -100,12 +104,12 @@ namespace
         // Some operating systems do not work well with SDL so they return very limited number of high resolutions.
         // Populate missing resolutions into the list.
         const std::vector<fheroes2::Size> possibleResolutions
-            = { { 640, 480 },   { 800, 600 },  { 1024, 768 },  { 1152, 864 }, { 1280, 600 }, { 1280, 720 },  { 1280, 768 }, { 1280, 960 },
-                { 1280, 1024 }, { 1360, 768 }, { 1400, 1050 }, { 1440, 900 }, { 1600, 900 }, { 1680, 1050 }, { 1920, 1080 } };
+                    = { { 640, 480 },   { 800, 600 },  { 1024, 768 },  { 1152, 864 }, { 1280, 600 }, { 1280, 720 },  { 1280, 768 }, { 1280, 960 },
+                        { 1280, 1024 }, { 1360, 768 }, { 1400, 1050 }, { 1440, 900 }, { 1600, 900 }, { 1680, 1050 }, { 1920, 1080 } };
 
         const fheroes2::Size lowestResolution = resolutions.back();
         for ( const fheroes2::Size & resolution : possibleResolutions ) {
-            if ( lowestResolution.width < resolution.width || lowestResolution.height < resolution.height || resolution == lowestResolution ) {
+            if ( resolution == lowestResolution ) {
                 continue;
             }
             resolutions.emplace_back( resolution );
@@ -429,6 +433,7 @@ namespace
             if ( returnCode < 0 ) {
                 ERROR_LOG( "Failed to set cursor state. The error value: " << returnCode << ", description: " << SDL_GetError() )
             }
+
             SDL_FreeSurface( surface );
 
             clear();
@@ -746,7 +751,6 @@ namespace
 #else
                 flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 #endif
-
                 SDL_GetWindowSize( _window, &_windowedSize.width, &_windowedSize.height );
 
                 const fheroes2::Display & display = fheroes2::Display::instance();
@@ -798,6 +802,13 @@ namespace
                             resolutionSet.emplace( videoMode.w, videoMode.h );
                         }
                     }
+
+                    fheroes2::Display & display = fheroes2::Display::instance();
+#if defined( TARGET_MOBILE )
+                    display.setOrientation(fheroes2::Display::DisplayOrientation::PORTRAIT);
+#else
+                    display.setOrientation(fheroes2::Display::DisplayOrientation::LANDSCAPE);
+#endif
                 }
 
 #if defined( TARGET_NINTENDO_SWITCH )
@@ -896,10 +907,15 @@ namespace
 
         void render( const fheroes2::Display & display, const fheroes2::Rect & roi ) override
         {
-            if ( _surface == nullptr )
+            if ( _surface == nullptr || _window == nullptr)
                 return;
 
             copyImageToSurface( display, _surface, roi );
+
+            auto rotated_surface = _surface;
+            if (display.orientation() == fheroes2::Display::PORTRAIT) {
+                rotated_surface = rotateSurface90Degrees(_surface, 1);
+            }
 
             if ( _texture == nullptr ) {
                 if ( _renderer != nullptr )
@@ -914,7 +930,7 @@ namespace
             else {
                 const bool fullFrame = ( roi.width == display.width() ) && ( roi.height == display.height() );
                 if ( fullFrame ) {
-                    int returnCode = SDL_UpdateTexture( _texture, nullptr, _surface->pixels, _surface->pitch );
+                    int returnCode = SDL_UpdateTexture( _texture, nullptr, rotated_surface->pixels, rotated_surface->pitch );
                     if ( returnCode < 0 ) {
                         ERROR_LOG( "Failed to update texture. The error value: " << returnCode << ", description: " << SDL_GetError() )
                     }
@@ -938,7 +954,7 @@ namespace
                     area.w = roi.width;
                     area.h = roi.height;
 
-                    int returnCode = SDL_UpdateTexture( _texture, &area, _surface->pixels, _surface->pitch );
+                    int returnCode = SDL_UpdateTexture( _texture, &area, rotated_surface->pixels, rotated_surface->pitch );
                     if ( returnCode < 0 ) {
                         ERROR_LOG( "Failed to update texture. The error value: " << returnCode << ", description: " << SDL_GetError() )
                     }
@@ -957,6 +973,11 @@ namespace
                 }
 
                 SDL_RenderPresent( _renderer );
+
+                if (rotated_surface != nullptr && rotated_surface != _surface) {
+                    SDL_FreeSurface( rotated_surface );
+                    rotated_surface = nullptr;
+                }
             }
         }
 
@@ -964,12 +985,25 @@ namespace
         {
             clear();
 
+            int32_t width_with_rotation;
+            int32_t height_with_rotation;
+
+            fheroes2::Display & display = fheroes2::Display::instance();
+
             const std::vector<fheroes2::Size> resolutions = getAvailableResolutions();
             assert( !resolutions.empty() );
             if ( !resolutions.empty() ) {
                 const fheroes2::Size correctResolution = GetNearestResolution( width_, height_, resolutions );
                 width_ = correctResolution.width;
                 height_ = correctResolution.height;
+
+                if (display.orientation() == fheroes2::Display::PORTRAIT) {
+                    width_with_rotation = height_;
+                    height_with_rotation = width_;
+                } else {
+                    width_with_rotation = width_;
+                    height_with_rotation = height_;
+                }
             }
 
             uint32_t flags = SDL_WINDOW_SHOWN;
@@ -983,9 +1017,9 @@ namespace
 
             flags |= SDL_WINDOW_RESIZABLE;
 
-            _window = SDL_CreateWindow( _previousWindowTitle.data(), _prevWindowPos.x, _prevWindowPos.y, width_, height_, flags );
+            _window = SDL_CreateWindow( _previousWindowTitle.data(), _prevWindowPos.x, _prevWindowPos.y, width_with_rotation, height_with_rotation, flags );
             if ( _window == nullptr ) {
-                ERROR_LOG( "Failed to create an application window of " << width_ << " x " << height_ << " size. The error: " << SDL_GetError() )
+                ERROR_LOG( "Failed to create an application window of " << width_with_rotation << " x " << height_with_rotation << " size. The error: " << SDL_GetError() )
                 clear();
                 return false;
             }
@@ -1014,9 +1048,16 @@ namespace
             // SDL_PIXELFORMAT_INDEX8 is not supported by SDL 2 even being available in the list of formats.
             _renderer = SDL_CreateRenderer( _window, -1, renderingFlags );
             if ( _renderer == nullptr ) {
-                ERROR_LOG( "Failed to create a window renderer of " << width_ << " x " << height_ << " size. The error: " << SDL_GetError() )
+                ERROR_LOG( "Failed to create a window renderer of " << width_with_rotation << " x " << height_with_rotation << " size. The error: " << SDL_GetError() )
                 clear();
                 return false;
+            }
+
+            if (display.orientation() == fheroes2::Display::PORTRAIT) {
+                SDL_SysWMinfo info;
+                SDL_GetWindowWMInfo(_window, &info);
+                wl_surface *sdl_wl_surface = info.info.wl.surface;
+                wl_surface_set_buffer_transform(sdl_wl_surface, WL_OUTPUT_TRANSFORM_270);
             }
 
             _surface = SDL_CreateRGBSurface( 0, width_, height_, isPaletteModeSupported ? 8 : 32, 0, 0, 0, 0 );
@@ -1042,17 +1083,17 @@ namespace
                 ERROR_LOG( "Failed to set a linear scale hint for rendering." )
             }
 
-            returnCode = SDL_RenderSetLogicalSize( _renderer, width_, height_ );
+            returnCode = SDL_RenderSetLogicalSize( _renderer, width_with_rotation, height_with_rotation);
             if ( returnCode < 0 ) {
-                ERROR_LOG( "Failed to create logical size of " << width_ << " x " << height_ << " size. The error value: " << returnCode
+                ERROR_LOG( "Failed to create logical size of " << width_with_rotation << " x " << height_with_rotation << " size. The error value: " << returnCode
                                                                << ", description: " << SDL_GetError() )
                 clear();
                 return false;
             }
 
-            _texture = SDL_CreateTextureFromSurface( _renderer, _surface );
+            _texture = SDL_CreateTexture(_renderer, _surface->format->format, SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET, width_with_rotation, height_with_rotation); //SDL_CreateTextureFromSurface( _renderer, _surface );
             if ( _texture == nullptr ) {
-                ERROR_LOG( "Failed to create a texture from a surface of " << width_ << " x " << height_ << " size. The error: " << SDL_GetError() )
+                ERROR_LOG( "Failed to create a texture from a surface of " << width_with_rotation << " x " << height_with_rotation << " size. The error: " << SDL_GetError() )
                 clear();
                 return false;
             }
@@ -1404,6 +1445,7 @@ namespace fheroes2
         }
 
         Image::resize( width_, height_ );
+        saveWindowSize({0, 0, width_, height_});
 
         // To detect some UI artifacts by invalid code let's put all transform data into pixel skipping mode.
         std::fill( transform(), transform() + width() * height(), static_cast<uint8_t>( 1 ) );

@@ -1567,8 +1567,15 @@ void LocalEvent::HandleMouseButtonEvent( const SDL_MouseButtonEvent & button )
 
     mouse_button = button.button;
 
-    mouse_cu.x = button.x;
-    mouse_cu.y = button.y;
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::PORTRAIT) {
+        mouse_cu.x = button.y;
+        mouse_cu.y = display.height() - button.x;
+    } else {
+        mouse_cu.x = button.x;
+        mouse_cu.y = button.y;
+    }
+
     _emulatedPointerPosX = mouse_cu.x;
     _emulatedPointerPosY = mouse_cu.y;
 

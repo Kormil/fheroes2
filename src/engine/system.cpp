@@ -177,6 +177,7 @@ std::string System::GetDataDirectory( const std::string & prog )
     const char * homeEnv = getenv( "HOME" );
     if ( homeEnv ) {
         return System::ConcatePath( System::ConcatePath( homeEnv, ".local/share" ), prog );
+        //return System::ConcatePath( "/usr/share/.", prog );
     }
 
     return {};

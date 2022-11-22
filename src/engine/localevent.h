@@ -180,7 +180,7 @@ public:
 
     static void SetStateDefaults();
 
-    bool HandleEvents( bool delay = true, bool allowExit = false );
+    bool HandleEvents( bool delay = true, bool allowExit = true );
 
     bool MouseMotion() const
     {

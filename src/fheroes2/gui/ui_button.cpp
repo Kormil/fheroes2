@@ -26,7 +26,6 @@
 #include "localevent.h"
 #include "pal.h"
 #include "settings.h"
-
 #include <cassert>
 
 namespace fheroes2

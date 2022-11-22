@@ -34,7 +34,7 @@ fr.mo: fr.po
 	sed -e 'y/àâçéèêîïôùûüÇÉÊÀ/@*^~`|><#&$$uCEEA/; s/œ/oe/g' $< | msgfmt - -o $@
 
 # Czech, Polish versions use CP1250
-cs.mo pl.mo: %.mo: %.po
+cs.mo pl.mo hu.mo lt.mo: %.mo: %.po
 	$(call MSGFMT,CP1250)
 
 # Belarusian, Bulgarian, Ukrainian versions use CP1251
@@ -44,7 +44,7 @@ be.mo bg.mo ru.mo uk.mo: %.mo: %.po
 	$(call MSGFMT,CP1251)
 
 # German, Italian, Norwegian, Portuguese, Spanish, Swedish versions use CP1252
-de.mo es.mo it.mo nb.mo pt.mo sv.mo: %.mo: %.po
+de.mo fr.mo nl.mo es.mo it.mo nb.mo pt.mo sv.mo: %.mo: %.po
 	$(call MSGFMT,CP1252)
 
 # Turkish uses CP1254

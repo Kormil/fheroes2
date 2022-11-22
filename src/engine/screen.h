@@ -127,6 +127,12 @@ namespace fheroes2
             DEFAULT_HEIGHT = 480
         };
 
+        enum DisplayOrientation: int32_t
+        {
+            PORTRAIT,
+            LANDSCAPE
+        };
+
         static Display & instance();
 
         ~Display() override = default;
@@ -140,6 +146,22 @@ namespace fheroes2
         void render( const Rect & roi ); // render a part of image on screen. Prefer this method over full image if you don't draw full screen.
 
         void resize( int32_t width_, int32_t height_ ) override;
+
+        void saveWindowSize(const Rect& size) {
+            _savedWindowSize = size;
+        }
+
+        Rect savedWindowSize() {
+            return _savedWindowSize;
+        }
+
+        void setOrientation(DisplayOrientation orientation) {
+            _orientation = orientation;
+        }
+
+        DisplayOrientation orientation() const {
+            return _orientation;
+        }
 
         bool isDefaultSize() const
         {
@@ -179,6 +201,8 @@ namespace fheroes2
 
         // Previous area drawn on the screen.
         Rect _prevRoi;
+        Rect _savedWindowSize;
+        DisplayOrientation _orientation = DisplayOrientation::LANDSCAPE;
 
         // Only for cases of direct drawing on rendered 8-bit image.
         void linkRenderSurface( uint8_t * surface )

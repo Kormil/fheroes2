@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=fheroes2
+Exec=fheroes2
+Name=fheroes2
+Comment=Free implementation of heroes of might and magic II engine

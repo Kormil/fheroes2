@@ -391,7 +391,7 @@ std::string Settings::String() const
     os << "# fheroes2 configuration file (saved by version " << GetVersion() << ")" << std::endl;
 
     os << std::endl << "# video mode (game resolution)" << std::endl;
-    os << "videomode = " << fheroes2::Display::instance().width() << "x" << fheroes2::Display::instance().height() << std::endl;
+    os << "videomode = " << fheroes2::Display::instance().savedWindowSize().width << "x" << fheroes2::Display::instance().savedWindowSize().height << std::endl;
 
     os << std::endl << "# music: original, expansion, external" << std::endl;
     os << "music = " << musicType << std::endl;
@@ -559,6 +559,11 @@ const std::vector<std::string> & Settings::GetRootDirs()
     std::string dataPath = System::GetDataDirectory( "fheroes2" );
     if ( !dataPath.empty() && std::find( dirs.begin(), dirs.end(), dataPath ) == dirs.end() ) {
         dirs.emplace_back( std::move( dataPath ) );
+    }
+
+    const char * homeEnv = getenv( "HOME" );
+    if ( homeEnv ) {
+         dirs.emplace_back(System::ConcatePath( "/usr/share/.", "fheroes2" ));
     }
 
     // Remove all paths that are not directories.
@@ -1019,7 +1024,7 @@ void Settings::BinaryLoad()
 
 bool Settings::FullScreen() const
 {
-    return _optGlobal.Modes( GLOBAL_FULLSCREEN );
+    return true;//_optGlobal.Modes( GLOBAL_FULLSCREEN );
 }
 
 bool Settings::isVSyncEnabled() const
