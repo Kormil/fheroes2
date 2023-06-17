@@ -279,10 +279,10 @@ void Interface::Basic::EventSystemDialog() const
 
 fheroes2::GameMode Interface::Basic::EventExit()
 {
-    if ( Dialog::YES & fheroes2::showStandardTextMessage( "", _( "Are you sure you want to quit?" ), Dialog::YES | Dialog::NO ) )
+    //if ( Dialog::YES & fheroes2::showStandardTextMessage( "", _( "Are you sure you want to quit?" ), Dialog::YES | Dialog::NO ) )
         return fheroes2::GameMode::QUIT_GAME;
 
-    return fheroes2::GameMode::CANCEL;
+    //return fheroes2::GameMode::CANCEL;
 }
 
 void Interface::Basic::EventNextTown()

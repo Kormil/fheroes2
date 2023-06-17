@@ -25,10 +25,11 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <filesystem>
 #include <initializer_list>
 #include <system_error>
 #include <utility>
+
+#include <boost/filesystem.hpp>
 
 #if defined( _WIN32 )
 #include <clocale>
@@ -308,6 +309,7 @@ std::string System::GetDataDirectory( const std::string & prog )
     const char * homeEnv = getenv( "HOME" );
     if ( homeEnv ) {
         return System::concatPath( System::concatPath( homeEnv, ".local/share" ), prog );
+                //return System::ConcatPath( "/usr/share/.", prog );
     }
 
     return { "." };
@@ -549,17 +551,16 @@ bool System::GetCaseInsensitivePath( const std::string & path, std::string & cor
 
 void System::globFiles( const std::string_view glob, std::vector<std::string> & fileNames )
 {
-    const std::filesystem::path globPath( glob );
+    const boost::filesystem::path globPath( glob.data() );
 
-    std::filesystem::path dirPath = globPath.parent_path();
+    boost::filesystem::path dirPath = globPath.parent_path();
     if ( dirPath.empty() ) {
-        dirPath = std::filesystem::path{ "." };
+        dirPath = boost::filesystem::path{ "." };
     }
 
-    std::error_code ec;
-
+    boost::system::error_code ec;
     // Using the non-throwing overload
-    if ( !std::filesystem::is_directory( dirPath, ec ) ) {
+    if ( !boost::filesystem::is_directory( dirPath, ec ) ) {
         fileNames.emplace_back( glob );
         return;
     }
@@ -574,8 +575,8 @@ void System::globFiles( const std::string_view glob, std::vector<std::string> & 
     bool isNoMatches = true;
 
     // Using the non-throwing overload
-    for ( const std::filesystem::directory_entry & entry : std::filesystem::directory_iterator( dirPath, ec ) ) {
-        const std::filesystem::path & entryPath = entry.path();
+    for ( const boost::filesystem::directory_entry & entry : boost::filesystem::directory_iterator( dirPath, ec ) ) {
+        const boost::filesystem::path & entryPath = entry.path();
 
         if ( globMatch( entryPath.filename().string(), pattern ) ) {
             fileNames.push_back( entryPath.string() );

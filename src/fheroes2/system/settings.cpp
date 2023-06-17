@@ -77,7 +77,8 @@ namespace
         GLOBAL_BATTLE_AUTO_RESOLVE = 0x04000000,
         GLOBAL_BATTLE_AUTO_SPELLCAST = 0x08000000,
         GLOBAL_AUTO_SAVE_AT_BEGINNING_OF_TURN = 0x10000000,
-        GLOBAL_SCREEN_SCALING_TYPE_NEAREST = 0x20000000
+        GLOBAL_SCREEN_SCALING_TYPE_NEAREST = 0x20000000,
+        GLOBAL_LANDSCAPE_UPSIDE = 0x40000000
     };
 }
 
@@ -248,11 +249,15 @@ bool Settings::Read( const std::string & filePath )
     }
 
     if ( config.Exists( "videomode" ) ) {
-        _resolutionInfo = config.ResolutionParams( "videomode", { fheroes2::Display::DEFAULT_WIDTH, fheroes2::Display::DEFAULT_HEIGHT } );
+        _resolutionInfo = config.ResolutionParams( "videomode", { fheroes2::Display::DEFAULT_HEIGHT, fheroes2::Display::DEFAULT_WIDTH } );
     }
 
     if ( config.Exists( "fullscreen" ) ) {
-        setFullScreen( config.StrParams( "fullscreen" ) == "on" );
+        setFullScreen( true );
+    }
+
+    if ( config.Exists( "landscape_upside" ) ) {
+        setLandscapeUpside( config.StrParams( "landscape_upside" ) == "on" );
     }
 
     if ( config.Exists( "controller pointer speed" ) ) {
@@ -362,7 +367,7 @@ std::string Settings::String() const
     const fheroes2::Display & display = fheroes2::Display::instance();
 
     os << std::endl << "# video mode: in-game width x in-game height : on-screen width x on-screen height" << std::endl;
-    os << "videomode = " << display.width() << "x" << display.height() << ":" << display.screenSize().width << "x" << display.screenSize().height << std::endl;
+    os << "videomode = " << display.savedWindowSize().width << "x" << display.savedWindowSize().height << ":" << display.screenSize().width << "x" << display.screenSize().height << std::endl;
 
     os << std::endl << "# music: original, expansion, external" << std::endl;
     os << "music = " << musicType << std::endl;
@@ -375,6 +380,9 @@ std::string Settings::String() const
 
     os << std::endl << "# run in fullscreen mode: on/off" << std::endl;
     os << "fullscreen = " << ( _optGlobal.Modes( GLOBAL_FULLSCREEN ) ? "on" : "off" ) << std::endl;
+
+    os << std::endl << "# run in upside landscape mode: on/off" << std::endl;
+    os << "landscape_upside = " << ( _optGlobal.Modes( GLOBAL_LANDSCAPE_UPSIDE ) ? "on" : "off" ) << std::endl;
 
     os << std::endl << "# print debug messages (only for development, see src/engine/logging.h for possible values)" << std::endl;
     os << "debug = " << Logging::getDebugLevel() << std::endl;
@@ -564,6 +572,11 @@ const std::vector<std::string> & Settings::GetRootDirs()
         dirs.emplace_back( std::move( dataPath ) );
     }
 
+    const char * homeEnv = getenv( "HOME" );
+    if ( homeEnv ) {
+        dirs.emplace_back(System::concatPath( "/usr/share/.", "fheroes2" ));
+    }
+
     // Remove all paths that are not directories.
     dirs.erase( std::remove_if( dirs.begin(), dirs.end(), []( const std::string & path ) { return !System::IsDirectory( path ); } ), dirs.end() );
 
@@ -669,6 +682,19 @@ void Settings::setFullScreen( const bool enable )
     if ( enable != fheroes2::engine().isFullScreen() ) {
         fheroes2::engine().toggleFullScreen();
         fheroes2::Display::instance().render();
+    }
+}
+
+void Settings::setLandscapeUpside( const bool enable )
+{
+    if ( enable ) {
+        _optGlobal.SetModes( GLOBAL_LANDSCAPE_UPSIDE );
+    } else {
+        _optGlobal.ResetModes( GLOBAL_LANDSCAPE_UPSIDE );
+    }
+
+    if ( enable != fheroes2::engine().isLandscapeUpside() ) {
+        fheroes2::engine().toggleLandscapeUpside();
     }
 }
 
@@ -1011,7 +1037,12 @@ void Settings::SetShowStatus( bool f )
 
 bool Settings::FullScreen() const
 {
-    return _optGlobal.Modes( GLOBAL_FULLSCREEN );
+    return true;// _optGlobal.Modes( GLOBAL_FULLSCREEN );
+}
+
+bool Settings::LandscapeUpside() const
+{
+    return _optGlobal.Modes( GLOBAL_LANDSCAPE_UPSIDE );
 }
 
 bool Settings::isVSyncEnabled() const
