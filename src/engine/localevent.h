@@ -197,7 +197,7 @@ public:
 
     static void setEventProcessingStates();
 
-    bool HandleEvents( const bool sleepAfterEventProcessing = true, const bool allowExit = false );
+    bool HandleEvents( const bool sleepAfterEventProcessing = true, const bool allowExit = true );
 
     bool MouseMotion() const
     {

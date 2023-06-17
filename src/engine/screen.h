@@ -98,6 +98,16 @@ namespace fheroes2
             return _isFullScreen;
         }
 
+        virtual void toggleLandscapeUpside()
+        {
+            _isLandscapeUpside = !_isLandscapeUpside;
+        }
+
+        virtual bool isLandscapeUpside() const
+        {
+            return _isLandscapeUpside;
+        }
+
         virtual std::vector<ResolutionInfo> getAvailableResolutions() const
         {
             return {};
@@ -176,6 +186,7 @@ namespace fheroes2
 
     private:
         bool _isFullScreen;
+        bool _isLandscapeUpside = false;
 
         bool _nearestScaling;
     };
@@ -189,6 +200,12 @@ namespace fheroes2
         {
             DEFAULT_WIDTH = 640,
             DEFAULT_HEIGHT = 480
+        };
+
+        enum DisplayOrientation: int32_t {
+            LANDSCAPE_REVERSE = -1,
+            PORTRAIT,
+            LANDSCAPE,
         };
 
         static Display & instance();
@@ -244,6 +261,22 @@ namespace fheroes2
         friend BaseRenderEngine & engine();
         friend Cursor & cursor();
 
+        void saveWindowSize(const Rect& size) {
+            _savedWindowSize = size;
+        }
+
+        Rect savedWindowSize() const {
+            return _savedWindowSize;
+        }
+
+        void setOrientation(DisplayOrientation orientation) {
+            _orientation = orientation;
+        }
+
+        DisplayOrientation orientation() const {
+            return _orientation;
+        }
+
     private:
         std::unique_ptr<BaseRenderEngine> _engine;
         std::unique_ptr<Cursor> _cursor;
@@ -254,6 +287,8 @@ namespace fheroes2
 
         // Previous area drawn on the screen.
         Rect _prevRoi;
+        Rect _savedWindowSize;
+        DisplayOrientation _orientation = DisplayOrientation::LANDSCAPE_REVERSE;
 
         Size _screenSize;
 

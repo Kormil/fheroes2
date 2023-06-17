@@ -84,14 +84,14 @@ namespace
     {
         const fheroes2::Sprite & originalIcon = fheroes2::AGG::GetICN( ICN::SPANEL, Settings::Get().isEvilInterfaceEnabled() ? 17 : 16 );
 
-        if ( fheroes2::engine().isFullScreen() ) {
+        if ( fheroes2::engine().isLandscapeUpside() ) {
             fheroes2::Sprite icon = originalIcon;
             fheroes2::Resize( originalIcon, 6, 6, 53, 53, icon, 2, 2, 61, 61 );
 
-            fheroes2::drawOption( optionRoi, icon, _( "window|Mode" ), _( "Fullscreen" ), fheroes2::UiOptionTextWidth::TWO_ELEMENTS_ROW );
+            fheroes2::drawOption( optionRoi, icon, _( "window|Landscape" ), _( "Upside" ), fheroes2::UiOptionTextWidth::TWO_ELEMENTS_ROW );
         }
         else {
-            fheroes2::drawOption( optionRoi, originalIcon, _( "window|Mode" ), _( "Windowed" ), fheroes2::UiOptionTextWidth::TWO_ELEMENTS_ROW );
+            fheroes2::drawOption( optionRoi, originalIcon, _( "window|Landscape" ), _( "Normal" ), fheroes2::UiOptionTextWidth::TWO_ELEMENTS_ROW );
         }
     }
 
@@ -192,7 +192,7 @@ namespace
                 fheroes2::showStandardTextMessage( _( "Select Game Resolution" ), _( "Change the resolution of the game." ), 0 );
             }
             else if ( le.MousePressRight( windowModeRoi ) ) {
-                fheroes2::showStandardTextMessage( _( "window|Mode" ), _( "Toggle between fullscreen and windowed modes." ), 0 );
+                fheroes2::showStandardTextMessage( _( "window|Landscape" ), _( "Toggle between upside landscape mode." ), 0 );
             }
             else if ( le.MousePressRight( windowVSyncRoi ) ) {
                 fheroes2::showStandardTextMessage( _( "V-Sync" ), _( "The V-Sync option can be enabled to resolve flickering issues on some monitors." ), 0 );
@@ -241,7 +241,7 @@ namespace fheroes2
                 windowType = SelectedWindow::Configuration;
                 break;
             case SelectedWindow::Mode:
-                conf.setFullScreen( !conf.FullScreen() );
+                conf.setLandscapeUpside( !conf.LandscapeUpside() );
                 conf.Save( Settings::configFileName );
                 windowType = SelectedWindow::Configuration;
                 break;
