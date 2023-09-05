@@ -1,0 +1,69 @@
+Name: fheroes2
+Summary: Recreation of the Heroes of Might and Magic II game engine.
+Version: 1.0.7.1
+Release: 1
+# The contents of the Group field should be one of the groups listed here:
+# https://github.com/mer-tools/spectacle/blob/master/data/GROUPS
+Group: Amusements/Games
+URL: https://github.com/Kormil/fheroes2
+License: LICENSE
+# This must be generated before uploading a package to a remote build service.
+# Usually this line does not need to be modified.
+Sources:
+- '%{name}-%{version}.tar.bz2'
+Description: |
+  FHeroes2 recreation of the Heroes of Might and Magic II game engine.
+Builder: cmake
+
+# This section specifies build dependencies that are resolved using pkgconfig.
+# This is the preferred way of specifying build dependencies for your package.
+PkgConfigBR:
+  - sailfishapp >= 1.0.2
+  - Qt5Core
+  - Qt5Qml
+  - Qt5Quick
+  - zlib
+  - libpng
+  - sdl2
+  - SDL2_image
+  - SDL2_mixer
+  - SDL2_ttf
+  - SDL2_gfx
+  - wayland-client
+#  - boost
+  
+# Build dependencies without a pkgconfig setup can be listed here
+PkgBR:
+#   - package-needed-to-build
+  - gettext
+  - boost-devel
+  - boost-filesystem
+#  - gettext-libs
+#  - gettext-devel
+#  - wayland-devel
+#  - wayland-egl-devel
+
+# Runtime dependencies which are not automatically detected
+Requires:
+  - sailfishsilica-qt5 >= 0.10.9 
+  - zlib
+  - libpng
+  - SDL2
+  - SDL2_mixer
+  - SDL2_image
+  - SDL2_ttf
+  - SDL2_gfx
+  - wayland
+  - wayland-egl
+  - boost-filesystem
+
+# All installed files
+Files:
+  - '%{_bindir}'
+  - '%{_datadir}/%{name}'
+  #- '%{_datadir}/doc/%{name}'
+  - '%{_datadir}/applications/%{name}.desktop'
+  - '%{_datadir}/icons/hicolor/*/apps/%{name}.png'
+
+# For more information about yaml and what's supported in Sailfish OS
+# build system, please see https://wiki.merproject.org/wiki/Spectacle
