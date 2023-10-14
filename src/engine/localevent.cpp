@@ -29,6 +29,7 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <vector>
 
 #include <SDL_events.h>
 #include <SDL_gamecontroller.h>
@@ -928,20 +929,27 @@ void LocalEvent::HandleTouchEvent( const SDL_TouchFingerEvent & event )
     if ( event.fingerId == _fingerIds.first ) {
         const fheroes2::Display & display = fheroes2::Display::instance();
 
-#if defined( TARGET_PS_VITA ) || defined( TARGET_NINTENDO_SWITCH )
         // TODO: verify where it is even needed to do such weird woodoo magic for these targets.
         const fheroes2::Size screenResolution = fheroes2::engine().getCurrentScreenResolution(); // current resolution of screen
         const fheroes2::Rect windowRect = fheroes2::engine().getActiveWindowROI(); // scaled (logical) resolution
 
-        _emulatedPointerPosX = static_cast<double>( screenResolution.width * event.x - windowRect.x ) * ( static_cast<double>( display.width() ) / windowRect.width );
-        _emulatedPointerPosY = static_cast<double>( screenResolution.height * event.y - windowRect.y ) * ( static_cast<double>( display.height() ) / windowRect.height );
-#else
-        _emulatedPointerPosX = static_cast<double>( event.x ) * display.width();
-        _emulatedPointerPosY = static_cast<double>( event.y ) * display.height();
-#endif
+        _emulatedPointerPosX = static_cast<double>( screenResolution.width * event.y - windowRect.x ) * ( static_cast<double>( display.width() ) / screenResolution.width );
+        _emulatedPointerPosY = static_cast<double>( screenResolution.height * event.x - windowRect.y ) * ( static_cast<double>( display.height() ) / screenResolution.height );
 
-        mouse_cu.x = static_cast<int32_t>( _emulatedPointerPosX );
-        mouse_cu.y = static_cast<int32_t>( _emulatedPointerPosY );
+
+        // ? = (1080 * x - 0) * (1920 / 1080)
+
+
+        if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+            mouse_cu.x = static_cast<int32_t>( _emulatedPointerPosX );
+            mouse_cu.y = display.height() - static_cast<int32_t>( _emulatedPointerPosY );
+        } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+            mouse_cu.x = display.width() - static_cast<int32_t>( _emulatedPointerPosX );
+            mouse_cu.y = static_cast<int32_t>( _emulatedPointerPosY );
+        } else {
+            mouse_cu.x = static_cast<int32_t>( _emulatedPointerPosX );
+            mouse_cu.y = static_cast<int32_t>( _emulatedPointerPosY );
+        }
 
         SetModes( MOUSE_MOTION );
         SetModes( MOUSE_TOUCH );
@@ -1268,8 +1276,19 @@ void LocalEvent::HandleKeyboardEvent( const SDL_KeyboardEvent & event )
 void LocalEvent::HandleMouseMotionEvent( const SDL_MouseMotionEvent & motion )
 {
     SetModes( MOUSE_MOTION );
-    mouse_cu.x = motion.x;
-    mouse_cu.y = motion.y;
+
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+        mouse_cu.x = motion.y;
+        mouse_cu.y = display.height() - motion.x;
+    } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+        mouse_cu.x = display.width() - motion.y;
+        mouse_cu.y = display.height() - motion.x;
+    } else {
+        mouse_cu.x = motion.x;
+        mouse_cu.y = motion.y;
+    }
+
     _emulatedPointerPosX = mouse_cu.x;
     _emulatedPointerPosY = mouse_cu.y;
 
@@ -1292,8 +1311,18 @@ void LocalEvent::HandleMouseButtonEvent( const SDL_MouseButtonEvent & button )
 
     mouse_button = button.button;
 
-    mouse_cu.x = button.x;
-    mouse_cu.y = button.y;
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+        mouse_cu.x = button.y;
+        mouse_cu.y = display.height() - button.x;
+    } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+        mouse_cu.x = display.width() - button.y;
+        mouse_cu.y = display.height() - button.x;
+    } else {
+        mouse_cu.x = button.x;
+        mouse_cu.y = button.y;
+    }
+
     _emulatedPointerPosX = mouse_cu.x;
     _emulatedPointerPosY = mouse_cu.y;
 

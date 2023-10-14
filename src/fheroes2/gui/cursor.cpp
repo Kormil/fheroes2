@@ -98,10 +98,11 @@ void Cursor::setCustomImage( const fheroes2::Image & image, const fheroes2::Poin
 
 fheroes2::Rect Cursor::updateCursorPosition( const int32_t x, const int32_t y )
 {
+    const fheroes2::Display & display = fheroes2::Display::instance();
     if ( fheroes2::cursor().isSoftwareEmulation() ) {
-        Cursor::Get().Move( x, y );
+        Cursor::Get().Move(x, y);
         if ( fheroes2::cursor().isVisible() ) {
-            return { x, y, 1, 1 };
+            return { 0, 0, display.width(), display.height() };
         }
     }
 

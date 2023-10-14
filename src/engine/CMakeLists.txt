@@ -39,21 +39,30 @@ target_compile_definitions(
 	$<$<CONFIG:Debug>:WITH_DEBUG>
 	$<$<BOOL:${ENABLE_IMAGE}>:WITH_IMAGE>
 	$<$<BOOL:${MACOS_APP_BUNDLE}>:MACOS_APP_BUNDLE>
-	)
+        )
 
 target_include_directories(
 	engine
 	PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-	)
+	$<$<BOOL:${ENABLE_IMAGE}>:${${USE_SDL_VERSION}_IMAGE_INCLUDE_DIR}>
+	${${USE_SDL_VERSION}_GFX_INCLUDE_DIR}
+	${${USE_SDL_VERSION}_MIXER_INCLUDE_DIR}
+        ${${USE_SDL_VERSION}_INCLUDE_DIR}
+	$<INSTALL_INTERFACE:include>
+        )
+
 
 target_link_libraries(
 	engine
 	smacker
-	${USE_SDL_VERSION}::${USE_SDL_VERSION}
-	${USE_SDL_VERSION}_mixer::${USE_SDL_VERSION}_mixer
-	$<$<BOOL:${ENABLE_IMAGE}>:${USE_SDL_VERSION}_image::${USE_SDL_VERSION}_image>
-	$<$<BOOL:${ENABLE_IMAGE}>:PNG::PNG>
-	Threads::Threads
+	# In the case of SDL1, SDL_LIBRARY contains both SDLmain and SDL libraries
+        ${USE_SDL_VERSION}::${USE_SDL_VERSION}
+        ${USE_SDL_VERSION}_mixer::${USE_SDL_VERSION}_mixer
+        $<$<BOOL:${ENABLE_IMAGE}>:${USE_SDL_VERSION}_image::${USE_SDL_VERSION}_image>
+        $<$<BOOL:${ENABLE_IMAGE}>:PNG::PNG>
+        ${${USE_SDL_VERSION}_GFX_LIBRARIES}
+	Threads::Threads # To match the build settings of the main app
 	ZLIB::ZLIB
+	Boost::filesystem
 	)

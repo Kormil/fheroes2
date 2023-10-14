@@ -26,6 +26,7 @@
 
 #include "agg_image.h"
 #include "cursor.h"
+#include "dialog.h"
 #include "dialog_resolution.h"
 #include "embedded_image.h"
 #include "game_hotkeys.h"
@@ -263,6 +264,9 @@ namespace Dialog
 
         if ( selectedResolution.gameWidth > 0 && selectedResolution.gameHeight > 0 && selectedResolution.screenWidth >= selectedResolution.gameWidth
              && selectedResolution.screenHeight >= selectedResolution.gameHeight && selectedResolution != currentResolution ) {
+
+            display.saveWindowSize({0, 0, selectedResolution.gameWidth, selectedResolution.gameHeight});
+
             display.setResolution( selectedResolution );
 
 #if !defined( MACOS_APP_BUNDLE )
