@@ -1651,7 +1651,10 @@ namespace fheroes2
 
     void Display::render( const Rect & roi )
     {
-        Rect temp ( 0, 0, width(), height() );
+        const auto real_button_y = roi.x;
+        const auto real_button_x = Display::instance().height() - roi.y;
+
+        Rect temp ( roi );
         if ( !getActiveArea( temp, width(), height() ) )
             return;
 

@@ -9,7 +9,7 @@ Name:       fheroes2
 # << macros
 
 Summary:    Recreation of the Heroes of Might and Magic II game engine.
-Version:    1.0.4.1
+Version:    1.0.7.1
 Release:    1
 Group:      Amusements/Games
 License:    LICENSE

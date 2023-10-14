@@ -1038,8 +1038,7 @@ bool LocalEvent::HandleEvents( const bool sleepAfterEventProcessing, const bool 
         ProcessControllerAxisMotion();
     }
 #endif
-
-    //renderRoi = fheroes2::getBoundaryRect( renderRoi, _mouseCursorRenderArea );
+    renderRoi = fheroes2::getBoundaryRect( renderRoi, _mouseCursorRenderArea );
 
     if ( sleepAfterEventProcessing ) {
         if ( renderRoi != fheroes2::Rect() ) {
@@ -1478,16 +1477,27 @@ void LocalEvent::HandleKeyboardEvent( const SDL_KeyboardEvent & event )
 void LocalEvent::HandleMouseMotionEvent( const SDL_MouseMotionEvent & motion )
 {
     SetModes( MOUSE_MOTION );
-    mouse_cu.x = motion.x;
-    mouse_cu.y = motion.y;
+
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+        mouse_cu.x = motion.y;
+        mouse_cu.y = display.height() - motion.x;
+    } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+        mouse_cu.x = display.width() - motion.y;
+        mouse_cu.y = display.height() - motion.x;
+    } else {
+        mouse_cu.x = motion.x;
+        mouse_cu.y = motion.y;
+    }
+
     _emulatedPointerPosX = mouse_cu.x;
     _emulatedPointerPosY = mouse_cu.y;
 
-//    if ( _globalMouseMotionEventHook ) {
-//        _mouseCursorRenderArea = _globalMouseMotionEventHook( motion.x, motion.y );
-//    }
+    if ( _globalMouseMotionEventHook ) {
+        _mouseCursorRenderArea = _globalMouseMotionEventHook( motion.x, motion.y );
+    }
 }
-#include <iostream>
+
 void LocalEvent::HandleMouseButtonEvent( const SDL_MouseButtonEvent & button )
 {
     if ( button.state == SDL_PRESSED ) {
