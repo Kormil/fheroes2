@@ -171,6 +171,7 @@ public:
     }
 
     bool FullScreen() const;
+    bool LandscapeUpside() const;
     bool ShowControlPanel() const;
     bool ShowRadar() const;
     bool ShowIcons() const;
@@ -245,6 +246,7 @@ public:
     void setBattleAutoSpellcast( bool enable );
     void setBattleShowTurnOrder( const bool enable );
     void setFullScreen( const bool enable );
+    void setLandscapeUpside( const bool enable );
     void setMonochromeCursor( const bool enable );
     void setTextSupportMode( const bool enable );
     void set3DAudio( const bool enable );

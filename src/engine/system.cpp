@@ -32,6 +32,8 @@
 #include <system_error>
 #include <utility>
 
+#include <boost/filesystem.hpp>
+
 #if defined( _WIN32 )
 #include <tuple>
 
@@ -395,9 +397,9 @@ std::string System::GetDataDirectory( const std::string_view appName )
             return concatPath( dataEnv, appName );
         }
 
-        if ( const char * homeEnv = getenv( "HOME" ); homeEnv != nullptr ) {
-            return concatPath( concatPath( homeEnv, ".local/share" ), appName );
-        }
+    if ( const char * homeEnv = getenv( "HOME" ); homeEnv != nullptr ) {
+        return System::concatPath( System::concatPath( homeEnv, ".local/share" ), appName );
+    }
 
         return { "." };
 #elif defined( MACOS_APP_BUNDLE )
@@ -582,17 +584,16 @@ bool System::GetCaseInsensitivePath( const std::string_view path, std::string & 
 
 void System::globFiles( const std::string_view glob, std::vector<std::string> & fileNames )
 {
-    const std::filesystem::path globPath( glob );
+    const std::filesystem::path globPath( glob.data() );
 
     std::filesystem::path dirPath = globPath.parent_path();
     if ( dirPath.empty() ) {
         dirPath = std::filesystem::path{ "." };
     }
 
-    std::error_code ec;
-
+    boost::system::error_code ec;
     // Using the non-throwing overload
-    if ( !std::filesystem::is_directory( dirPath, ec ) ) {
+    if ( !boost::filesystem::is_directory( dirPath, ec ) ) {
         fileNames.emplace_back( glob );
         return;
     }
@@ -609,6 +610,7 @@ void System::globFiles( const std::string_view glob, std::vector<std::string> & 
     // Using the non-throwing overload
     for ( const std::filesystem::directory_entry & entry : std::filesystem::directory_iterator( dirPath, ec ) ) {
         const std::filesystem::path & entryPath = entry.path();
+
 
         if ( !globMatch( fsPathToString( entryPath.filename() ), pattern ) ) {
             continue;

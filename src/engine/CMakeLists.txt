@@ -52,8 +52,11 @@ target_link_libraries(
 	smacker
 	${USE_SDL_VERSION}::${USE_SDL_VERSION}
 	${USE_SDL_VERSION}_mixer::${USE_SDL_VERSION}_mixer
+        ${${USE_SDL_VERSION}_GFX_LIBRARIES}
 	$<$<BOOL:${ENABLE_IMAGE}>:${USE_SDL_VERSION}_image::${USE_SDL_VERSION}_image>
 	$<$<BOOL:${ENABLE_IMAGE}>:PNG::PNG>
 	Threads::Threads
 	ZLIB::ZLIB
+        Boost::filesystem
+        wayland-client
 	)

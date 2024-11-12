@@ -334,6 +334,9 @@ namespace Dialog
 
         if ( selectedResolution.gameWidth > 0 && selectedResolution.gameHeight > 0 && selectedResolution.screenWidth >= selectedResolution.gameWidth
              && selectedResolution.screenHeight >= selectedResolution.gameHeight && selectedResolution != currentResolution ) {
+
+            display.saveWindowSize({0, 0, selectedResolution.gameWidth, selectedResolution.gameHeight});
+
             display.setResolution( selectedResolution );
 
 #if !defined( MACOS_APP_BUNDLE )

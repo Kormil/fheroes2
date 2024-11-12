@@ -47,6 +47,9 @@
 #include <SDL_stdinc.h>
 #include <SDL_surface.h>
 #include <SDL_video.h>
+#include <SDL_syswm.h>
+#include <SDL2_rotozoom.h>
+#include <wayland-client-protocol.h>
 
 // Managing compiler warnings for SDL headers
 #if defined( __GNUC__ )
@@ -62,6 +65,8 @@
 #include "math_tools.h"
 #include "screen.h"
 #include "system.h"
+#include "tools.h"
+#include "EGL/egl.h"
 
 namespace
 {
@@ -144,7 +149,7 @@ namespace
             const fheroes2::ResolutionInfo lowestResolution = *( resolutions.begin() );
 
             for ( const fheroes2::ResolutionInfo & resolution : possibleResolutions ) {
-                if ( lowestResolution.gameWidth < resolution.gameWidth || lowestResolution.gameHeight < resolution.gameHeight || lowestResolution == resolution ) {
+                if ( lowestResolution == resolution ) {
                     continue;
                 }
 
@@ -961,7 +966,7 @@ namespace
                 }
 
                 const fheroes2::Display & display = fheroes2::Display::instance();
-                _createRenderer( display.width(), display.height() );
+                _createRenderer( display.width(), display.height(), display.height(), display.width());
             }
         }
 
@@ -1036,9 +1041,11 @@ namespace
 
             copyImageToSurface( display, _surface, roi );
 
+            auto rotated_surface = rotateSurface90Degrees(_surface, static_cast<int>(display.orientation()));
+
             const bool fullFrame = ( roi.width == display.width() ) && ( roi.height == display.height() );
             if ( fullFrame ) {
-                const int returnCode = SDL_UpdateTexture( _texture, nullptr, _surface->pixels, _surface->pitch );
+                const int returnCode = SDL_UpdateTexture( _texture, nullptr, rotated_surface->pixels, rotated_surface->pitch );
                 if ( returnCode < 0 ) {
                     ERROR_LOG( "Failed to update texture. The error value: " << returnCode << ", description: " << SDL_GetError() )
                 }
@@ -1050,7 +1057,7 @@ namespace
                 area.w = roi.width;
                 area.h = roi.height;
 
-                const int returnCode = SDL_UpdateTexture( _texture, &area, _surface->pixels, _surface->pitch );
+                const int returnCode = SDL_UpdateTexture( _texture, &area, rotated_surface->pixels, rotated_surface->pitch );
                 if ( returnCode < 0 ) {
                     ERROR_LOG( "Failed to update texture. The error value: " << returnCode << ", description: " << SDL_GetError() )
                 }
@@ -1069,16 +1076,42 @@ namespace
             }
 
             SDL_RenderPresent( _renderer );
+
+            if (rotated_surface != nullptr && rotated_surface != _surface) {
+                SDL_FreeSurface( rotated_surface );
+                rotated_surface = nullptr;
+            }
         }
 
         bool allocate( fheroes2::ResolutionInfo & resolutionInfo, bool isFullScreen ) override
         {
             clear();
 
+            int32_t width_with_rotation;
+            int32_t height_with_rotation;
+
+            fheroes2::Display & display = fheroes2::Display::instance();
+
             const std::vector<fheroes2::ResolutionInfo> resolutions = getAvailableResolutions();
             assert( !resolutions.empty() );
+
+            if (BaseRenderEngine::isLandscapeUpside()) {
+                display.setOrientation(fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE);
+            } else {
+                display.setOrientation(fheroes2::Display::DisplayOrientation::LANDSCAPE);
+            }
+
             if ( !resolutions.empty() ) {
                 resolutionInfo = GetNearestResolution( resolutionInfo, resolutions );
+
+                if (display.orientation() == fheroes2::Display::LANDSCAPE
+                    || display.orientation() == fheroes2::Display::LANDSCAPE_REVERSE ) {
+                    width_with_rotation = resolutionInfo.screenHeight;
+                    height_with_rotation = resolutionInfo.screenWidth;
+                } else {
+                    width_with_rotation = resolutionInfo.screenWidth;
+                    height_with_rotation = resolutionInfo.screenHeight;
+                }
             }
 
 #if defined( ANDROID )
@@ -1104,8 +1137,9 @@ namespace
 
             flags |= SDL_WINDOW_RESIZABLE;
 
-            _window = SDL_CreateWindow( System::encLocalToUTF8( _previousWindowTitle ).c_str(), _prevWindowPos.x, _prevWindowPos.y, resolutionInfo.screenWidth,
-                                        resolutionInfo.screenHeight, flags );
+            _window = SDL_CreateWindow( System::encLocalToUTF8( _previousWindowTitle ).c_str(), _prevWindowPos.x, _prevWindowPos.y,
+                                        width_with_rotation, height_with_rotation, flags );
+
             if ( _window == nullptr ) {
                 ERROR_LOG( "Failed to create an application window of " << resolutionInfo.screenWidth << " x " << resolutionInfo.screenHeight
                                                                         << " size. The error: " << SDL_GetError() )
@@ -1157,7 +1191,17 @@ namespace
                 ERROR_LOG( "Failed to get the number of render drivers. The error value: " << driverCount << ", description: " << SDL_GetError() )
             }
 
-            _surface = SDL_CreateRGBSurface( 0, resolutionInfo.gameWidth, resolutionInfo.gameHeight, isPaletteModeSupported ? 8 : 32, 0, 0, 0, 0 );
+            SDL_SysWMinfo info;
+            SDL_GetWindowWMInfo(_window, &info);
+            wl_surface *sdl_wl_surface = info.info.wl.surface;
+
+            if (display.orientation() == fheroes2::Display::LANDSCAPE) {
+                wl_surface_set_buffer_transform(sdl_wl_surface, WL_OUTPUT_TRANSFORM_270);
+            } else if (display.orientation() == fheroes2::Display::LANDSCAPE_REVERSE) {
+                wl_surface_set_buffer_transform(sdl_wl_surface, WL_OUTPUT_TRANSFORM_90);
+            }
+
+            _surface = SDL_CreateRGBSurface( 0, resolutionInfo.screenWidth, resolutionInfo.screenHeight, isPaletteModeSupported ? 8 : 32, 0, 0, 0, 0 );
             if ( _surface == nullptr ) {
                 ERROR_LOG( "Failed to create a surface of " << resolutionInfo.gameWidth << " x " << resolutionInfo.gameHeight << " size. The error: " << SDL_GetError() )
                 clear();
@@ -1171,7 +1215,7 @@ namespace
 
             _createPalette();
 
-            return _createRenderer( resolutionInfo.gameWidth, resolutionInfo.gameHeight );
+            return _createRenderer( resolutionInfo.screenWidth, resolutionInfo.screenHeight, width_with_rotation, height_with_rotation);
         }
 
         void updatePalette( const std::vector<uint8_t> & colorIds ) override
@@ -1261,15 +1305,15 @@ namespace
         {
             // To properly support fullscreen mode on devices with multiple displays or devices with notch,
             // it is important to lock the mouse in the application window area.
-            if ( isFullScreen() ) {
-                SDL_SetWindowGrab( _window, SDL_TRUE );
-            }
-            else {
+//            if ( isFullScreen() ) {
+//                SDL_SetWindowGrab( _window, SDL_TRUE );
+//            }
+//            else {
                 SDL_SetWindowGrab( _window, SDL_FALSE );
-            }
+//            }
         }
 
-        bool _createRenderer( const int32_t width_, const int32_t height_ )
+        bool _createRenderer( const int32_t width_, const int32_t height_, const int32_t rot_width_, const int32_t rot_height_ )
         {
             const uint32_t renderingFlags = renderFlags();
 
@@ -1301,7 +1345,7 @@ namespace
                 ERROR_LOG( "Failed to set the " SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS " hint." )
             }
 
-            returnCode = SDL_RenderSetLogicalSize( _renderer, width_, height_ );
+            returnCode = SDL_RenderSetLogicalSize( _renderer, rot_width_, rot_height_ );
             if ( returnCode < 0 ) {
                 ERROR_LOG( "Failed to create logical size of " << width_ << " x " << height_ << " size. The error value: " << returnCode
                                                                << ", description: " << SDL_GetError() )
@@ -1309,7 +1353,7 @@ namespace
                 return false;
             }
 
-            _texture = SDL_CreateTextureFromSurface( _renderer, _surface );
+            _texture = SDL_CreateTexture(_renderer, _surface->format->format, SDL_TextureAccess::SDL_TEXTUREACCESS_TARGET, rot_width_, rot_height_);
             if ( _texture == nullptr ) {
                 ERROR_LOG( "Failed to create a texture from a surface of " << width_ << " x " << height_ << " size. The error: " << SDL_GetError() )
                 clear();
@@ -1367,6 +1411,10 @@ namespace fheroes2
 
     void Display::setResolution( ResolutionInfo info )
     {
+        info.gameHeight = info.screenHeight;
+        info.gameWidth = info.screenWidth;
+
+
         if ( width() > 0 && height() > 0 && info.gameWidth == width() && info.gameHeight == height() && info.screenWidth == _screenSize.width
              && info.screenHeight == _screenSize.height ) // nothing to resize
             return;
@@ -1387,6 +1435,9 @@ namespace fheroes2
         Image::reset();
 
         _screenSize = { info.screenWidth, info.screenHeight };
+
+        // To detect some UI artifacts by invalid code let's put all transform data into pixel skipping mode.
+        //std::fill( transform(), transform() + width() * height(), static_cast<uint8_t>( 1 ) );
     }
 
     Display & Display::instance()
@@ -1397,7 +1448,11 @@ namespace fheroes2
 
     void Display::render( const Rect & roi )
     {
-        Rect temp( roi );
+        const auto real_button_y = roi.x;
+        const auto real_button_x = Display::instance().height() - roi.y;
+
+        //Rect temp ( roi );
+        Rect temp ( 0, 0, width(), height() );
         if ( !getActiveArea( temp, width(), height() ) )
             return;
 

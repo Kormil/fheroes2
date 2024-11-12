@@ -209,8 +209,7 @@ public:
         _globalKeyDownEventHook = std::move( hook );
     }
 
-    // Return false when event handling should be stopped, true otherwise.
-    bool HandleEvents( const bool sleepAfterEventProcessing = true, const bool allowExit = false );
+    bool HandleEvents( const bool sleepAfterEventProcessing = true, const bool allowExit = true );
 
     bool hasMouseMoved() const
     {

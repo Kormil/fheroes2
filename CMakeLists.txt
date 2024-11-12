@@ -61,8 +61,12 @@ set_property(CACHE USE_SDL_VERSION PROPERTY STRINGS SDL2)
 #
 find_package(${USE_SDL_VERSION} REQUIRED)
 find_package(${USE_SDL_VERSION}_mixer REQUIRED)
+find_package(${USE_SDL_VERSION}_gfx REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Threads)
+
+set (BOOST_CXX_FLAGS "-Wno-deprecated-register -std=c++14")
+find_package(Boost 1.81.0 COMPONENTS filesystem system REQUIRED)
 
 # TODO: Modern versions of SDL2* packages provide the CMake config files that define the SDL2::SDL2, SDL2_mixer::SDL2_mixer and SDL2_image::SDL2_image
 # TODO: imported targets, but older versions do not. To solve this problem, we have to use FindSDL2*.cmake modules from the cmake/ subdirectory and

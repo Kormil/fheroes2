@@ -30,6 +30,7 @@
 #include <ostream>
 #include <set>
 #include <utility>
+#include <vector>
 
 // Managing compiler warnings for SDL headers
 #if defined( __GNUC__ )
@@ -1299,22 +1300,25 @@ void LocalEvent::onTouchFingerEvent( const TouchFingerEventType eventType, const
     if ( eventFingerId == _fingerIds.first ) {
         const fheroes2::Display & display = fheroes2::Display::instance();
 
-#if defined( TARGET_PS_VITA ) || defined( TARGET_NINTENDO_SWITCH )
         // TODO: verify where it is even needed to do such weird woodoo magic for these targets.
         const fheroes2::Size screenResolution = fheroes2::engine().getCurrentScreenResolution(); // current resolution of screen
         const fheroes2::Rect windowRect = fheroes2::engine().getActiveWindowROI(); // scaled (logical) resolution
         assert( windowRect.width > 0 );
 
-        _emulatedPointerPos.x = static_cast<double>( screenResolution.width * position.x - windowRect.x ) * ( static_cast<double>( display.width() ) / windowRect.width );
-        _emulatedPointerPos.y
-            = static_cast<double>( screenResolution.height * position.y - windowRect.y ) * ( static_cast<double>( display.height() ) / windowRect.height );
-#else
-        _emulatedPointerPos.x = static_cast<double>( position.x ) * display.width();
-        _emulatedPointerPos.y = static_cast<double>( position.y ) * display.height();
-#endif
+        _emulatedPointerPos.x = static_cast<double>( screenResolution.width * position.y - windowRect.x ) * ( static_cast<double>( display.width() ) / screenResolution.width );
+        _emulatedPointerPos.y = static_cast<double>( screenResolution.height * position.x - windowRect.y ) * ( static_cast<double>( display.height() ) / screenResolution.height );
 
-        _mouseCursorPos.x = static_cast<int32_t>( _emulatedPointerPos.x );
-        _mouseCursorPos.y = static_cast<int32_t>( _emulatedPointerPos.y );
+
+        if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+            _mouseCursorPos.x = static_cast<int32_t>( _emulatedPointerPos.x );
+            _mouseCursorPos.y = display.height() - static_cast<int32_t>( _emulatedPointerPos.y );
+        } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+            _mouseCursorPos.x = display.width() - static_cast<int32_t>( _emulatedPointerPos.x );
+            _mouseCursorPos.y = static_cast<int32_t>( _emulatedPointerPos.y );
+        } else {
+            _mouseCursorPos.x = static_cast<int32_t>( _emulatedPointerPos.x );
+            _mouseCursorPos.y = static_cast<int32_t>( _emulatedPointerPos.y );
+        }
 
         setStates( MOUSE_MOTION );
         setStates( MOUSE_TOUCH );
@@ -1606,6 +1610,19 @@ void LocalEvent::onMouseMotionEvent( fheroes2::Point position )
 {
     setStates( MOUSE_MOTION );
     _mouseCursorPos = position;
+
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+        _mouseCursorPos.x = position.y;
+        _mouseCursorPos.y = display.height() - position.x;
+    } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+        _mouseCursorPos.x = display.width() - position.y;
+        _mouseCursorPos.y = display.height() - position.x;
+    } else {
+        _mouseCursorPos.x = position.x;
+        _mouseCursorPos.y = position.y;
+    }
+
     _emulatedPointerPos.x = _mouseCursorPos.x;
     _emulatedPointerPos.y = _mouseCursorPos.y;
 
@@ -1631,6 +1648,18 @@ void LocalEvent::onMouseButtonEvent( const bool isPressed, const MouseButtonType
     _currentMouseButton = buttonType;
 
     _mouseCursorPos = position;
+    const fheroes2::Display & display = fheroes2::Display::instance();
+    if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE) {
+        _mouseCursorPos.x = position.y;
+        _mouseCursorPos.y = display.height() - position.x;
+    } else if (display.orientation() == fheroes2::Display::DisplayOrientation::LANDSCAPE_REVERSE) {
+        _mouseCursorPos.x = display.width() - position.y;
+        _mouseCursorPos.y = display.height() - position.x;
+    } else {
+        _mouseCursorPos.x = position.x;
+        _mouseCursorPos.y = position.y;
+    }
+
     _emulatedPointerPos.x = _mouseCursorPos.x;
     _emulatedPointerPos.y = _mouseCursorPos.y;
 
