@@ -27,6 +27,11 @@ project(fheroes2 VERSION ${FHEROES2_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+#sailfishl
+include(FindPkgConfig)
+pkg_search_module(SAILFISH sailfishapp REQUIRED)
+pkg_search_module(SAILFISH sailfishsecrets REQUIRED)
+
 include(CMakeDependentOption)
 include(GNUInstallDirs)
 
@@ -134,10 +139,10 @@ if(NOT MACOS_APP_BUNDLE)
 		FILES_MATCHING
 		PATTERN *.h2d
 		)
-	install(
-		FILES docs/README.txt LICENSE changelog.txt
-		DESTINATION ${CMAKE_INSTALL_DOCDIR}
-		)
+#	install(
+#		FILES docs/README.txt LICENSE changelog.txt
+#		DESTINATION ${CMAKE_INSTALL_DOCDIR}
+#		)
 
 	if(GET_HOMM2_DEMO)
 		include(FetchContent)
@@ -188,20 +193,20 @@ if(NOT MACOS_APP_BUNDLE)
 			FILES_MATCHING
 			PATTERN *.mo
 			)
-		install(
-			FILES script/demo/download_demo_version.sh
-			PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-			DESTINATION ${CMAKE_INSTALL_DOCDIR}/demo
-			)
-		install(
-			FILES script/homm2/extract_homm2_resources.sh
-			PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-			DESTINATION ${CMAKE_INSTALL_DOCDIR}/homm2
-			)
-		install(
-			FILES script/packaging/common/fheroes2.metainfo.xml
-			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/metainfo
-			)
+#		install(
+#			FILES script/demo/download_demo_version.sh
+#			PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+#			DESTINATION ${CMAKE_INSTALL_DOCDIR}/demo
+#			)
+#		install(
+#			FILES script/homm2/extract_homm2_resources.sh
+#			PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+#			DESTINATION ${CMAKE_INSTALL_DOCDIR}/homm2
+#			)
+#		install(
+#			FILES script/packaging/common/fheroes2.metainfo.xml
+#			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/metainfo
+#			)
 		install(
 			FILES src/resources/fheroes2.png
 			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps
